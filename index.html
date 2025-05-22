@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Documentos</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 font-sans">
+  <header class="bg-white shadow-md py-4 px-6 mb-6">
+    <h1 class="text-2xl font-bold text-center">Painel de Gerenciamento de Documentos</h1>
+  </header>
+
+  <main class="container mx-auto px-4">
+    <!-- Login e Registro -->
+    <section id="auth" class="bg-white p-6 rounded shadow-md mb-6">
+      <div class="grid md:grid-cols-2 gap-6">
+        <form id="loginForm">
+          <h2 class="text-xl font-semibold mb-4">Entrar</h2>
+          <input type="email" name="email" placeholder="Email" class="w-full p-2 mb-3 border rounded" required />
+          <input type="password" name="senha" placeholder="Senha" class="w-full p-2 mb-3 border rounded" required />
+          <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full">Entrar</button>
+        </form>
+
+        <form id="registerForm">
+          <h2 class="text-xl font-semibold mb-4">Registrar</h2>
+          <input type="email" name="email" placeholder="Email" class="w-full p-2 mb-3 border rounded" required />
+          <input type="password" name="senha" placeholder="Senha" class="w-full p-2 mb-3 border rounded" required />
+          <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded w-full">Registrar</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Upload e Gráfico -->
+    <section class="grid md:grid-cols-2 gap-6">
+      <form id="uploadForm" class="bg-white p-6 rounded shadow-md" enctype="multipart/form-data">
+        <h2 class="text-xl font-semibold mb-4">Enviar Documento</h2>
+        <input type="file" name="documento" class="w-full mb-3 p-2 border rounded" accept=".doc,.docx" required />
+        <select name="tipo" class="w-full mb-3 p-2 border rounded" required>
+          <option value="">Tipo de Documento</option>
+          <option value="venda">Venda</option>
+          <option value="compra">Compra</option>
+          <option value="retirada">Retirada</option>
+        </select>
+        <input type="date" name="vencimento" class="w-full mb-3 p-2 border rounded" required />
+        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full">Enviar</button>
+      </form>
+
+      <div class="bg-white p-6 rounded shadow-md">
+        <h2 class="text-xl font-semibold mb-4">Documentos por Mês</h2>
+        <canvas id="documentChart"></canvas>
+      </div>
+    </section>
+
+    <!-- Notificações -->
+    <section class="mt-8 bg-yellow-100 border border-yellow-400 p-4 rounded">
+      <h2 class="text-lg font-bold mb-2 text-yellow-800">Documentos Vencendo em 15 Dias</h2>
+      <ul id="vencendoLista" class="list-disc pl-5 text-yellow-900"></ul>
+    </section>
+  </main>
+
+  <script>
+    const ctx = document.getElementById('documentChart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Total de Documentos',
+          data: [],
+          backgroundColor: '#3B82F6'
+        }]
+      },
+    });
+
+    async function fetchGrafico() {
+      const res = await fetch('/api/grafico');
+      const data = await res.json();
+      chart.data.labels = data.labels;
+      chart.data.datasets[0].data = data.valores;
+      chart.update();
+    }
+
+    async function fetchVencendo() {
+      const res = await fetch('/api/vencendo');
+      const docs = await res.json();
+      const lista = document.getElementById('vencendoLista');
+      lista.innerHTML = '';
+      docs.forEach(doc => {
+        const li = document.createElement('li');
+        li.textContent = `${doc.nome} (${doc.tipo}) - vence em ${new Date(doc.vencimento).toLocaleDateString()}`;
+        lista.appendChild(li);
+      });
+    }
+
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const res = await fetch('/api/documento', {
+        method: 'POST',
+        body: form
+      });
+      if (res.ok) {
+        alert('Documento enviado com sucesso!');
+        fetchGrafico();
+        fetchVencendo();
+        e.target.reset();
+      }
+    });
+
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target));
+      const res = await fetch('/api/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      alert(await res.text());
+      e.target.reset();
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target));
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      alert(await res.text());
+      e.target.reset();
+    });
+
+    fetchGrafico();
+    fetchVencendo();
+  </script>
+</body>
+</html>
