@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Documentos</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #6366f1;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --success: #10b981;
+    }
+    
+    body {
+      background-color: #f8fafc;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .urgente {
+      background-color: #fff7ed;
+      border-left: 4px solid var(--warning);
+      animation: pulse 2s infinite;
+    }
+    
+    .muito-urgente {
+      background-color: #fef2f2;
+      border-left: 4px solid var(--danger);
+      animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.8; }
+      100% { opacity: 1; }
+    }
+    
+    .card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-primary {
+      background-color: var(--primary);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      background-color: var(--primary-light);
+      transform: translateY(-1px);
+    }
+    
+    .input-field:focus {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+    }
+    
+    .status-connected {
+      color: var(--success);
+    }
+    
+    .status-disconnected {
+      color: var(--danger);
+    }
+    
+    .loading-spinner {
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .document-item {
+      transition: all 0.3s ease;
+    }
+    
+    .document-item:hover {
+      background-color: #f1f5f9;
+    }
+    
+    .chart-container {
+      position: relative;
+      height: 300px;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <header class="bg-white shadow-sm py-4 px-6 sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <i class="fas fa-file-alt text-indigo-600 text-2xl"></i>
+        <h1 class="text-2xl font-bold text-gray-800">Sistema de Documentos</h1>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center text-sm">
+          <span class="hidden sm:inline mr-1">Status do Banco:</span>
+          <span id="dbStatus" class="font-medium">
+            <i class="fas fa-circle-notch fa-spin mr-1"></i>Conectando...
+          </span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Formulário de Upload -->
+      <div class="lg:col-span-1">
+        <div class="card bg-white rounded-lg shadow overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+              <i class="fas fa-cloud-upload-alt text-indigo-500 mr-2"></i>
+              Enviar Documento
+            </h2>
+          </div>
+          <form id="uploadForm" class="p-6" enctype="multipart/form-data">
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Arquivo do Documento</label>
+              <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                <div class="space-y-1 text-center">
+                  <div class="flex text-sm text-gray-600">
+                    <label class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none">
+                      <span>Selecione um arquivo</span>
+                      <input type="file" name="documento" class="sr-only" accept=".doc,.docx,.pdf" required>
+                    </label>
+                    <p class="pl-1">ou arraste e solte</p>
+                  </div>
+                  <p class="text-xs text-gray-500">DOC, DOCX ou PDF (até 10MB)</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Documento</label>
+              <select name="tipo" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md input-field" required>
+                <option value="">Selecione um tipo</option>
+                <option value="venda">Venda</option>
+                <option value="compra">Compra</option>
+                <option value="contrato">Contrato</option>
+                <option value="nota_fiscal">Nota Fiscal</option>
+                <option value="relatorio">Relatório</option>
+              </select>
+            </div>
+            
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Data de Vencimento</label>
+              <input type="date" name="vencimento" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm input-field" required>
+            </div>
+            
+            <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              <i class="fas fa-paper-plane mr-2"></i> Enviar Documento
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Gráfico e Documentos a Vencer -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Gráfico -->
+        <div class="card bg-white rounded-lg shadow overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+              <i class="fas fa-chart-bar text-indigo-500 mr-2"></i>
+              Documentos por Mês
+            </h2>
+          </div>
+          <div class="p-4">
+            <div class="chart-container">
+              <canvas id="documentChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Documentos a Vencer -->
+        <div class="card bg-white rounded-lg shadow overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+              <i class="fas fa-clock text-indigo-500 mr-2"></i>
+              Documentos Vencendo em Breve
+            </h2>
+          </div>
+          <div class="p-4">
+            <div id="loading" class="text-center py-8">
+              <div class="loading-spinner inline-block h-8 w-8 border-4 border-indigo-500 border-t-transparent rounded-full"></div>
+              <p class="mt-2 text-sm text-gray-600">Carregando documentos...</p>
+            </div>
+            
+            <ul id="vencendoLista" class="space-y-3 hidden"></ul>
+            
+            <div id="emptyMessage" class="hidden text-center py-8">
+              <i class="fas fa-check-circle text-green-500 text-4xl mb-2"></i>
+              <p class="text-gray-600">Nenhum documento próximo do vencimento</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const API_URL = "http://localhost:5000";
+    const chart = new Chart(
+      document.getElementById('documentChart').getContext('2d'),
+      { 
+        type: 'bar', 
+        data: { 
+          labels: [], 
+          datasets: [{ 
+            label: 'Documentos', 
+            data: [], 
+            backgroundColor: '#4f46e5',
+            borderRadius: 4,
+            borderSkipped: false
+          }] 
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: '#1e293b',
+              titleFont: {
+                size: 14
+              },
+              bodyFont: {
+                size: 12
+              },
+              padding: 12,
+              cornerRadius: 4,
+              displayColors: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                drawBorder: false,
+                color: '#e2e8f0'
+              },
+              ticks: {
+                color: '#64748b'
+              }
+            },
+            x: {
+              grid: {
+                display: false,
+                drawBorder: false
+              },
+              ticks: {
+                color: '#64748b'
+              }
+            }
+          }
+        }
+      }
+    );
+
+    // Verifica conexão com o banco
+    async function checkConnection() {
+      try {
+        const res = await fetch(`${API_URL}/api/grafico`);
+        const statusElement = document.getElementById('dbStatus');
+        statusElement.innerHTML = '<i class="fas fa-check-circle status-connected mr-1"></i>Conectado';
+        statusElement.className = 'font-medium status-connected';
+      } catch (error) {
+        const statusElement = document.getElementById('dbStatus');
+        statusElement.innerHTML = '<i class="fas fa-times-circle status-disconnected mr-1"></i>Desconectado';
+        statusElement.className = 'font-medium status-disconnected';
+      }
+    }
+
+    // Atualiza gráfico
+    async function fetchGrafico() {
+      try {
+        const res = await fetch(`${API_URL}/api/grafico`);
+        const data = await res.json();
+        chart.data.labels = data.labels;
+        chart.data.datasets[0].data = data.valores;
+        chart.update();
+      } catch (error) {
+        console.error('Erro no gráfico:', error);
+      }
+    }
+
+    // Atualiza lista de vencimento
+    async function fetchVencendo() {
+      const loading = document.getElementById('loading');
+      const lista = document.getElementById('vencendoLista');
+      const emptyMsg = document.getElementById('emptyMessage');
+      
+      try {
+        loading.classList.remove('hidden');
+        lista.classList.add('hidden');
+        emptyMsg.classList.add('hidden');
+        
+        const res = await fetch(`${API_URL}/api/vencendo`);
+        const data = await res.json();
+        
+        loading.classList.add('hidden');
+        
+        if (data.documentos && data.documentos.length > 0) {
+          lista.innerHTML = data.documentos.map(doc => `
+            <li class="document-item p-4 rounded-lg ${doc.dias_restantes <= 3 ? 'muito-urgente' : doc.dias_restantes <= 7 ? 'urgente' : 'bg-gray-50'}">
+              <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                <div class="mb-2 sm:mb-0">
+                  <div class="flex items-center">
+                    <i class="fas ${getFileIcon(doc.nome)} text-gray-500 mr-2"></i>
+                    <span class="font-medium text-gray-800">${doc.nome}</span>
+                  </div>
+                  <span class="text-xs text-gray-500 ml-6">${formatTipo(doc.tipo)} • ${doc.vencimento}</span>
+                </div>
+                <div class="flex items-center">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getBadgeClass(doc.dias_restantes)}">
+                    ${formatDiasRestantes(doc.dias_restantes)}
+                  </span>
+                  <a href="${API_URL}/uploads/${doc.nome}" download class="ml-3 inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <i class="fas fa-download mr-1"></i> Baixar
+                  </a>
+                </div>
+              </div>
+            </li>
+          `).join('');
+          lista.classList.remove('hidden');
+        } else {
+          emptyMsg.classList.remove('hidden');
+        }
+      } catch (error) {
+        loading.classList.add('hidden');
+        lista.innerHTML = `
+          <li class="p-4 rounded-lg bg-red-50 text-red-600">
+            <i class="fas fa-exclamation-circle mr-2"></i>
+            Erro ao carregar documentos. Tente recarregar a página.
+          </li>
+        `;
+        lista.classList.remove('hidden');
+        console.error('Erro nos documentos:', error);
+      }
+    }
+
+    // Helper functions
+    function getFileIcon(filename) {
+      const ext = filename.split('.').pop().toLowerCase();
+      if (ext === 'pdf') return 'fa-file-pdf';
+      if (ext === 'doc' || ext === 'docx') return 'fa-file-word';
+      return 'fa-file-alt';
+    }
+
+    function formatTipo(tipo) {
+      const tipos = {
+        'venda': 'Venda',
+        'compra': 'Compra',
+        'contrato': 'Contrato',
+        'nota_fiscal': 'Nota Fiscal',
+        'relatorio': 'Relatório'
+      };
+      return tipos[tipo] || tipo;
+    }
+
+    function getBadgeClass(dias) {
+      if (dias <= 3) return 'bg-red-100 text-red-800';
+      if (dias <= 7) return 'bg-yellow-100 text-yellow-800';
+      return 'bg-green-100 text-green-800';
+    }
+
+    function formatDiasRestantes(dias) {
+      if (dias === 0) return 'Vence hoje!';
+      if (dias === 1) return 'Vence amanhã!';
+      if (dias < 0) return `${Math.abs(dias)} dias atrasado`;
+      return `${dias} dias restantes`;
+    }
+
+    // Upload de documento
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const button = e.target.querySelector('button');
+      
+      try {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Enviando...';
+        
+        const res = await fetch(`${API_URL}/api/documento`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.msg || 'Erro ao enviar documento');
+        }
+        
+        // Mostrar notificação de sucesso
+        showNotification('Documento enviado com sucesso!', 'success');
+        e.target.reset();
+        fetchGrafico();
+        fetchVencendo();
+      } catch (error) {
+        showNotification(error.message, 'error');
+      } finally {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Enviar Documento';
+      }
+    });
+
+    // Mostrar notificação
+    function showNotification(message, type) {
+      const notification = document.createElement('div');
+      notification.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-md shadow-lg text-white ${
+        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+      }`;
+      notification.innerHTML = `
+        <div class="flex items-center">
+          <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
+          <span>${message}</span>
+        </div>
+      `;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
+
+    // Inicialização
+    document.addEventListener('DOMContentLoaded', () => {
+      checkConnection();
+      fetchGrafico();
+      fetchVencendo();
+      
+      // Verificar a cada 30 segundos
+      setInterval(() => {
+        checkConnection();
+        fetchVencendo();
+      }, 30000);
+    });
+  </script>
+</body>
+</html>
