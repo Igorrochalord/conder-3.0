@@ -8,93 +8,43 @@
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    :root {
-      --primary: #4f46e5;
-      --primary-light: #6366f1;
-      --danger: #ef4444;
-      --warning: #f59e0b;
-      --success: #10b981;
-    }
-    
-    body {
-      background-color: #f8fafc;
-      font-family: 'Inter', sans-serif;
-    }
-    
-    .urgente {
-      background-color: #fff7ed;
-      border-left: 4px solid var(--warning);
-      animation: pulse 2s infinite;
-    }
-    
-    .muito-urgente {
-      background-color: #fef2f2;
-      border-left: 4px solid var(--danger);
-      animation: pulse 1s infinite;
-    }
-    
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.8; }
-      100% { opacity: 1; }
-    }
-    
-    .card {
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    
-    .card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-    }
-    
-    .btn-primary {
-      background-color: var(--primary);
-      transition: all 0.3s ease;
-    }
-    
-    .btn-primary:hover {
-      background-color: var(--primary-light);
-      transform: translateY(-1px);
-    }
-    
-    .input-field:focus {
-      border-color: var(--primary-light);
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
-    }
-    
-    .status-connected {
-      color: var(--success);
-    }
-    
-    .status-disconnected {
-      color: var(--danger);
-    }
-    
-    .loading-spinner {
-      animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    .document-item {
-      transition: all 0.3s ease;
-    }
-    
-    .document-item:hover {
-      background-color: #f1f5f9;
-    }
-    
     .chart-container {
       position: relative;
       height: 300px;
     }
+    .animate-pulse {
+      animation: pulse 1.5s ease-in-out;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    .urgente {
+      background-color: #fff7ed;
+      border-left: 4px solid #f59e0b;
+    }
+    .muito-urgente {
+      background-color: #fef2f2;
+      border-left: 4px solid #ef4444;
+    }
+    .chart-update-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(16, 185, 129, 0.9);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      animation: fadeIn 0.5s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
-<body class="min-h-screen">
+<body class="bg-gray-50">
   <header class="bg-white shadow-sm py-4 px-6 sticky top-0 z-10">
     <div class="max-w-7xl mx-auto flex justify-between items-center">
       <div class="flex items-center space-x-2">
@@ -103,7 +53,7 @@
       </div>
       <div class="flex items-center space-x-4">
         <div class="flex items-center text-sm">
-          <span class="hidden sm:inline mr-1">Status do Banco:</span>
+          <span class="hidden sm:inline mr-1">Status:</span>
           <span id="dbStatus" class="font-medium">
             <i class="fas fa-circle-notch fa-spin mr-1"></i>Conectando...
           </span>
@@ -116,7 +66,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Formulário de Upload -->
       <div class="lg:col-span-1">
-        <div class="card bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
           <div class="px-6 py-4 border-b border-gray-200">
             <h2 class="text-lg font-semibold text-gray-800 flex items-center">
               <i class="fas fa-cloud-upload-alt text-indigo-500 mr-2"></i>
@@ -133,7 +83,6 @@
                       <span>Selecione um arquivo</span>
                       <input type="file" name="documento" class="sr-only" accept=".doc,.docx,.pdf" required>
                     </label>
-                    <p class="pl-1">ou arraste e solte</p>
                   </div>
                   <p class="text-xs text-gray-500">DOC, DOCX ou PDF (até 10MB)</p>
                 </div>
@@ -142,22 +91,20 @@
             
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Documento</label>
-              <select name="tipo" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md input-field" required>
+              <select name="tipo" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
                 <option value="">Selecione um tipo</option>
                 <option value="venda">Venda</option>
                 <option value="compra">Compra</option>
                 <option value="contrato">Contrato</option>
-                <option value="nota_fiscal">Nota Fiscal</option>
-                <option value="relatorio">Relatório</option>
               </select>
             </div>
             
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-700 mb-1">Data de Vencimento</label>
-              <input type="date" name="vencimento" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm input-field" required>
+              <input type="date" name="vencimento" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
             </div>
             
-            <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
               <i class="fas fa-paper-plane mr-2"></i> Enviar Documento
             </button>
           </form>
@@ -167,22 +114,36 @@
       <!-- Gráfico e Documentos a Vencer -->
       <div class="lg:col-span-2 space-y-6">
         <!-- Gráfico -->
-        <div class="card bg-white rounded-lg shadow overflow-hidden">
-          <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-lg font-semibold text-gray-800 flex items-center">
-              <i class="fas fa-chart-bar text-indigo-500 mr-2"></i>
-              Documentos por Mês
-            </h2>
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <div>
+              <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                <i class="fas fa-chart-bar text-indigo-500 mr-2"></i>
+                Documentos por Mês (por vencimento)
+              </h2>
+              <div class="mt-1 flex items-center">
+                <label class="text-sm text-gray-600 mr-2">Data de referência:</label>
+                <input type="date" id="chartDateRef" class="text-sm border rounded p-1">
+                <button onclick="fetchGrafico()" class="ml-2 text-sm text-indigo-600 hover:text-indigo-800">
+                  <i class="fas fa-sync-alt mr-1"></i> Atualizar
+                </button>
+              </div>
+            </div>
           </div>
           <div class="p-4">
             <div class="chart-container">
               <canvas id="documentChart"></canvas>
+              <div id="chartUpdateBadge" class="chart-update-badge hidden">Atualizado agora</div>
+            </div>
+            <div id="chartLoading" class="hidden text-center py-8">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+              <p class="mt-2 text-sm text-gray-600">Carregando dados do gráfico...</p>
             </div>
           </div>
         </div>
 
         <!-- Documentos a Vencer -->
-        <div class="card bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
           <div class="px-6 py-4 border-b border-gray-200">
             <h2 class="text-lg font-semibold text-gray-800 flex items-center">
               <i class="fas fa-clock text-indigo-500 mr-2"></i>
@@ -191,7 +152,7 @@
           </div>
           <div class="p-4">
             <div id="loading" class="text-center py-8">
-              <div class="loading-spinner inline-block h-8 w-8 border-4 border-indigo-500 border-t-transparent rounded-full"></div>
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
               <p class="mt-2 text-sm text-gray-600">Carregando documentos...</p>
             </div>
             
@@ -209,89 +170,108 @@
 
   <script>
     const API_URL = "http://localhost:5000";
-    const chart = new Chart(
-      document.getElementById('documentChart').getContext('2d'),
-      { 
-        type: 'bar', 
-        data: { 
-          labels: [], 
-          datasets: [{ 
-            label: 'Documentos', 
-            data: [], 
+    let chart;
+
+    // Inicializar gráfico
+    function initChart() {
+      const ctx = document.getElementById('documentChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Documentos por vencimento',
+            data: [],
             backgroundColor: '#4f46e5',
-            borderRadius: 4,
+            borderRadius: 6,
             borderSkipped: false
-          }] 
+          }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: {
-              display: false
-            },
+            legend: { display: false },
             tooltip: {
-              backgroundColor: '#1e293b',
-              titleFont: {
-                size: 14
-              },
-              bodyFont: {
-                size: 12
-              },
-              padding: 12,
-              cornerRadius: 4,
-              displayColors: false
+              callbacks: {
+                title: (context) => `Mês: ${context[0].label}`,
+                label: (context) => `${context.parsed.y} documento(s)`
+              }
             }
           },
           scales: {
             y: {
               beginAtZero: true,
-              grid: {
-                drawBorder: false,
-                color: '#e2e8f0'
-              },
               ticks: {
-                color: '#64748b'
+                precision: 0,
+                stepSize: 1
+              },
+              grid: {
+                drawBorder: false
               }
             },
             x: {
               grid: {
-                display: false,
-                drawBorder: false
-              },
-              ticks: {
-                color: '#64748b'
+                display: false
               }
             }
+          },
+          animation: {
+            duration: 1000
           }
         }
-      }
-    );
+      });
+    }
 
     // Verifica conexão com o banco
     async function checkConnection() {
       try {
         const res = await fetch(`${API_URL}/api/grafico`);
         const statusElement = document.getElementById('dbStatus');
-        statusElement.innerHTML = '<i class="fas fa-check-circle status-connected mr-1"></i>Conectado';
-        statusElement.className = 'font-medium status-connected';
+        statusElement.innerHTML = '<i class="fas fa-check-circle text-green-500 mr-1"></i>Conectado';
       } catch (error) {
         const statusElement = document.getElementById('dbStatus');
-        statusElement.innerHTML = '<i class="fas fa-times-circle status-disconnected mr-1"></i>Desconectado';
-        statusElement.className = 'font-medium status-disconnected';
+        statusElement.innerHTML = '<i class="fas fa-times-circle text-red-500 mr-1"></i>Desconectado';
       }
     }
 
     // Atualiza gráfico
     async function fetchGrafico() {
+      const chartLoading = document.getElementById('chartLoading');
+      const chartUpdateBadge = document.getElementById('chartUpdateBadge');
       try {
-        const res = await fetch(`${API_URL}/api/grafico`);
+        chartLoading.classList.remove('hidden');
+        
+        // Obter data de referência do input ou usar data atual
+        const dateRefInput = document.getElementById('chartDateRef');
+        const dataRef = dateRefInput.value || new Date().toISOString().split('T')[0];
+        
+        const res = await fetch(`${API_URL}/api/grafico?data_ref=${dataRef}&t=${Date.now()}`);
         const data = await res.json();
-        chart.data.labels = data.labels;
-        chart.data.datasets[0].data = data.valores;
-        chart.update();
+        
+        if (data.status === 'success') {
+          chart.data.labels = data.labels;
+          chart.data.datasets[0].data = data.valores;
+          chart.update();
+          
+          // Atualizar a data de referência no input
+          dateRefInput.value = data.data_referencia;
+          
+          // Mostrar badge de atualização
+          chartUpdateBadge.classList.remove('hidden');
+          setTimeout(() => {
+            chartUpdateBadge.classList.add('hidden');
+          }, 3000);
+          
+          showNotification(`Gráfico atualizado para referência: ${data.data_referencia}`, 'success');
+        } else {
+          throw new Error(data.error || 'Erro ao carregar dados');
+        }
       } catch (error) {
         console.error('Erro no gráfico:', error);
+        showNotification('Erro ao atualizar gráfico: ' + error.message, 'error');
+      } finally {
+        chartLoading.classList.add('hidden');
       }
     }
 
@@ -313,7 +293,7 @@
         
         if (data.documentos && data.documentos.length > 0) {
           lista.innerHTML = data.documentos.map(doc => `
-            <li class="document-item p-4 rounded-lg ${doc.dias_restantes <= 3 ? 'muito-urgente' : doc.dias_restantes <= 7 ? 'urgente' : 'bg-gray-50'}">
+            <li class="p-4 rounded-lg ${doc.dias_restantes <= 3 ? 'muito-urgente' : doc.dias_restantes <= 7 ? 'urgente' : 'bg-gray-50'}">
               <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
                 <div class="mb-2 sm:mb-0">
                   <div class="flex items-center">
@@ -362,9 +342,7 @@
       const tipos = {
         'venda': 'Venda',
         'compra': 'Compra',
-        'contrato': 'Contrato',
-        'nota_fiscal': 'Nota Fiscal',
-        'relatorio': 'Relatório'
+        'contrato': 'Contrato'
       };
       return tipos[tipo] || tipo;
     }
@@ -404,9 +382,18 @@
         
         // Mostrar notificação de sucesso
         showNotification('Documento enviado com sucesso!', 'success');
+        
+        // Resetar formulário
         e.target.reset();
-        fetchGrafico();
-        fetchVencendo();
+        
+        // Atualizar dados
+        await Promise.all([fetchGrafico(), fetchVencendo()]);
+        
+        // Animação no gráfico
+        document.getElementById('documentChart').classList.add('animate-pulse');
+        setTimeout(() => {
+          document.getElementById('documentChart').classList.remove('animate-pulse');
+        }, 1500);
       } catch (error) {
         showNotification(error.message, 'error');
       } finally {
@@ -437,13 +424,17 @@
 
     // Inicialização
     document.addEventListener('DOMContentLoaded', () => {
+      initChart();
       checkConnection();
       fetchGrafico();
       fetchVencendo();
       
-      // Verificar a cada 30 segundos
+      // Setar data atual como padrão no seletor de data
+      document.getElementById('chartDateRef').valueAsDate = new Date();
+      
+      // Atualizar a cada 30 segundos
       setInterval(() => {
-        checkConnection();
+        fetchGrafico();
         fetchVencendo();
       }, 30000);
     });

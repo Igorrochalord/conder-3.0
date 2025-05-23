@@ -58,8 +58,8 @@ def upload_documento():
         'nome': nome_seguro,
         'tipo': request.form['tipo'],
         'extensao': extensao,
-        'vencimento': vencimento_dt.astimezone(pytz.utc),  # Armazena em UTC
-        'data_upload': datetime.utcnow(),
+        'vencimento': vencimento_dt.astimezone(pytz.utc),
+        'data_upload': vencimento_dt.astimezone(pytz.utc),  # Usando a data de vencimento como data de upload
         'caminho': caminho
     }
 
@@ -67,7 +67,8 @@ def upload_documento():
         mongo.db.documentos.insert_one(documento)
         return jsonify({
             "msg": "Documento salvo com sucesso",
-            "documento": nome_seguro
+            "documento": nome_seguro,
+            "timestamp": datetime.now().isoformat()
         }), 201
     except Exception as e:
         return jsonify({"msg": f"Erro ao salvar: {str(e)}"}), 500
@@ -75,52 +76,44 @@ def upload_documento():
 @app.route('/api/grafico')
 def grafico():
     try:
-        # Usar data atual no timezone local como referência
-        data_referencia = datetime.now(local_tz)
+        # Obter parâmetro de data de referência se existir
+        data_ref_str = request.args.get('data_ref')
+        if data_ref_str:
+            try:
+                data_ref = local_tz.localize(datetime.strptime(data_ref_str, "%Y-%m-%d"))
+            except ValueError:
+                return jsonify({"error": "Formato de data inválido. Use YYYY-MM-DD"}), 400
+        else:
+            data_ref = datetime.now(local_tz)
+        
         meses_labels = []
         valores = []
         
-        # Garantir que vamos pegar meses completos (do dia 1 ao último dia)
-        primeiro_dia_mes_atual = data_referencia.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        
-        # Gerar os 6 meses anteriores (incluindo o atual)
-        periodos = []
-        for i in range(6):
-            mes = primeiro_dia_mes_atual - relativedelta(months=i)
-            periodos.append({
-                'inicio': mes,
-                'fim': mes + relativedelta(months=1)
-            })
-        
-        # Ordenar do mais antigo para o mais novo
-        periodos.reverse()
-        
-        # Consultar o MongoDB para cada período
-        for periodo in periodos:
-            # Converter para UTC para a consulta
-            inicio_utc = periodo['inicio'].astimezone(pytz.utc)
-            fim_utc = periodo['fim'].astimezone(pytz.utc)
+        # Garantir 6 meses completos baseados na data de referência
+        for i in range(5, -1, -1):  # 5 meses anteriores + atual
+            mes = data_ref.replace(day=1) - relativedelta(months=i)
+            inicio_mes = mes.replace(hour=0, minute=0, second=0, microsecond=0)
+            fim_mes = (inicio_mes + relativedelta(months=1))
             
             total = mongo.db.documentos.count_documents({
                 'data_upload': {
-                    '$gte': inicio_utc,
-                    '$lt': fim_utc
+                    '$gte': inicio_mes.astimezone(pytz.utc),
+                    '$lt': fim_mes.astimezone(pytz.utc)
                 }
             })
             
-            # Formatar label (ex: "05/2023")
-            label = periodo['inicio'].strftime('%m/%Y')
-            meses_labels.append(label)
+            meses_labels.append(inicio_mes.strftime('%m/%Y'))
             valores.append(total)
         
         return jsonify({
             'labels': meses_labels,
             'valores': valores,
-            'info': f"Dados de {meses_labels[0]} a {meses_labels[-1]}"
+            'data_referencia': data_ref.strftime('%Y-%m-%d'),
+            'status': 'success'
         })
     except Exception as e:
-        app.logger.error(f"Erro ao gerar gráfico: {str(e)}", exc_info=True)
-        return jsonify({'error': 'Erro ao processar dados do gráfico'}), 500
+        app.logger.error(f"Erro no gráfico: {str(e)}")
+        return jsonify({'error': str(e), 'status': 'error'}), 500
 
 @app.route('/api/vencendo')
 def documentos_a_vencer():
@@ -148,9 +141,12 @@ def documentos_a_vencer():
                 'dias_restantes': dias_restantes
             })
         
-        return jsonify({'documentos': resultado})
+        return jsonify({
+            'documentos': resultado,
+            'status': 'success'
+        })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e), 'status': 'error'}), 500
 
 @app.route('/uploads/<path:nome>')
 def servir_documento(nome):
