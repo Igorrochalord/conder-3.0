@@ -1,0 +1,118 @@
+# Sistema de Gerenciamento de Documentos
+
+Este é um sistema completo para gerenciamento de documentos com Flask, MongoDB e Docker.
+
+## Pré-requisitos
+
+- Docker instalado ([Download Docker](https://www.docker.com/get-started))
+- Docker Compose (normalmente vem com o Docker Desktop)
+- Git (opcional)
+
+## Como Executar o Sistema
+
+### 1. Clone o repositório (ou baixe os arquivos)
+
+```bash
+git clone [URL_DO_REPOSITORIO]
+cd [NOME_DO_DIRETORIO]
+```
+
+### 2. Construa e execute os containers
+
+```bash
+docker-compose up -d --build
+```
+
+### 3. Acesse a aplicação
+
+Abra seu navegador e acesse:
+```
+http://localhost:5000
+```
+
+## Comandos úteis
+
+### Parar os containers
+```bash
+docker-compose down
+```
+
+### Ver logs da aplicação
+```bash
+docker-compose logs web
+```
+
+### Ver logs do MongoDB
+```bash
+docker-compose logs mongo
+```
+
+### Acessar o shell do MongoDB
+```bash
+docker-compose exec mongo mongosh -u root -p example
+```
+
+### Reconstruir a aplicação (após alterações no código)
+```bash
+docker-compose up -d --build
+```
+
+## Configuração
+
+### Variáveis de ambiente
+
+O sistema usa as seguintes variáveis (configuradas no docker-compose.yml):
+
+- `MONGO_INITDB_ROOT_USERNAME`: root (usuário admin)
+- `MONGO_INITDB_ROOT_PASSWORD`: example
+- `MONGO_URI`: URL de conexão com o MongoDB
+
+### Portas
+
+- **5000**: Aplicação Flask
+- **27017**: MongoDB (apenas interno à rede Docker)
+
+## Estrutura do Projeto
+
+```
+.
+├── app/                  # Código da aplicação Flask
+│   ├── static/           # Arquivos estáticos (HTML, CSS, JS)
+│   └── app.py            # Aplicação principal
+├── uploads/              # Pasta para upload de documentos
+├── docker-compose.yml    # Configuração do Docker Compose
+├── Dockerfile            # Configuração do container Flask
+└── requirements.txt      # Dependências Python
+```
+
+## Solução de Problemas
+
+### Porta já em uso
+
+Se encontrar erros de porta em uso:
+
+```bash
+sudo lsof -i :5000  # Verifique qual processo está usando
+sudo kill -9 PID    # Substitua PID pelo número do processo
+```
+
+### Problemas com o MongoDB
+
+Para reiniciar completamente o MongoDB:
+
+```bash
+docker-compose down -v
+docker-compose up -d
+```
+
+## Personalização
+
+Para alterar credenciais do MongoDB, edite o `docker-compose.yml`:
+
+```yaml
+environment:
+  MONGO_INITDB_ROOT_USERNAME: seu_usuario
+  MONGO_INITDB_ROOT_PASSWORD: sua_senha
+```
+
+E atualize a `MONGO_URI` no serviço web correspondente.
